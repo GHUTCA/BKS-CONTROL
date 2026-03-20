@@ -272,9 +272,9 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 <script>
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const SHEET_ID = '1f7UYOrT82WAwzq0EgqNGbBMg90NrA1Ot-75BhvjAWFA';
-const GID_D = '0', GID_S = '411854168';
+const GID_D = '0', GID_S = '411854168', GID_H = '1233677400';
 const PMES = 250000000, DIAS_MES = 31, TC = 0.25, TR = 0.22;
-const PANUAL = [220e6,221e6,250e6,230e6,240e6,270e6,400e6,420e6,270e6,250e6,220e6,200e6];
+let PANUAL = [220e6,221e6,250e6,230e6,240e6,270e6,400e6,420e6,270e6,250e6,220e6,200e6];
 const MES_ANT_TOTAL = 193429183, MES_ANT2_TOTAL = 237826547;
 // Settimane ISO Marzo 2026 (Lun–Dom)
 // Sem 9:  Dom 1 Mar (1 giorno — chiude Feb)
@@ -293,7 +293,8 @@ const targetDia = Array.from({length:31},(_,i)=>getTargetDia(i+1));
 const st = {
   v: new Array(31).fill(0),
   c: new Array(31).fill(0),
-  w: Object.fromEntries(Array.from({length:53},(_,i)=>i+1).map(w=>[w,{liq:0,sol:0,otros:0,rrhh:0}]))
+  w: Object.fromEntries(Array.from({length:53},(_,i)=>i+1).map(w=>[w,{liq:0,sol:0,otros:0,rrhh:0}])),
+  hist: {}
 };
 
 // ── UTILS ──────────────────────────────────────────────────────────────────
@@ -373,6 +374,21 @@ async function cargarSheets(){
         otros:num(hasDateCols ? row.c[5]?.v : row.c[3]?.v),
         rrhh: num(hasDateCols ? row.c[6]?.v : row.c[4]?.v)
       };
+    });
+
+    // Historico
+    const d3 = await fetchGviz(GID_H);
+    const rows3 = d3.table.rows||[];
+    st.hist = {};
+    rows3.forEach(row=>{
+      if(!row.c||!row.c[0]||!row.c[0].v) return;
+      const key = row.c[0].v.toString().trim();
+      const vals = Array.from({length:12},(_,i)=>row.c[i+1]?.v?num(row.c[i+1].v):null);
+      st.hist[key] = vals;
+      if(key==='Presup 2026'||key==='Presup2026'||key==='presup2026'){
+        PANUAL = vals.map(v=>v||0);
+        st.hist['Presup2026'] = vals;
+      }
     });
 
     const now = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
@@ -559,10 +575,13 @@ function renderSemanas(){
 }
 
 function renderAnual(){
-  const r24=[297906411,291225436,341208112,301677340,309884354,364767832,462765061,501241001,356737859,291250866,270486214,239385855];
-  const r25=[250054470,194157027,237826547,214927080,222119098,224763740,378198057,404119601,214083609,208564834,202753468,168168505];
-  const r26=[210609243,193429183,null,null,null,null,null,null,null,null,null,null];
-  const totMar=st.v.reduce((a,b)=>a+b,0); if(totMar>0) r26[2]=totMar;
+  const r24=st.hist[2024]||[297906411,291225436,341208112,301677340,309884354,364767832,462765061,501241001,356737859,291250866,270486214,239385855];
+  const r25=st.hist[2025]||[250054470,194157027,237826547,214927080,222119098,224763740,378198057,404119601,214083609,208564834,202753468,168168505];
+  // Real 2026: usa storico se disponibile, aggiorna mese corrente con dati live
+  const r26=st.hist['Presup2026']?[...Array(12).fill(null)]:([210609243,193429183,null,null,null,null,null,null,null,null,null,null]);
+  if(st.hist['Real2026']) st.hist['Real2026'].forEach((v,i)=>{if(v) r26[i]=v;});
+  // Aggiorna Marzo (mese 2) con totale live da Input_Diario
+  const totMes=st.v.reduce((a,b)=>a+b,0); if(totMes>0) r26[2]=totMes;
   const ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   if(document.getElementById('cAnual')._ch) document.getElementById('cAnual')._ch.destroy();
   const ca=new Chart(document.getElementById('cAnual'),{type:'line',
