@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BKS Control 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root {
+  --bg: #0e0f11;
+  --bg2: #16181c;
+  --bg3: #1e2026;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f0;
+  --text2: #8a8f9a;
+  --text3: #555a66;
+  --green: #00c97a;
+  --green-bg: rgba(0,201,122,0.1);
+  --yellow: #f5a623;
+  --yellow-bg: rgba(245,166,35,0.1);
+  --red: #ff4d4d;
+  --red-bg: rgba(255,77,77,0.1);
+  --blue: #4d9fff;
+  --blue-bg: rgba(77,159,255,0.1);
+  --font: 'IBM Plex Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+/* LAYOUT */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 200px; min-height: 100vh; background: var(--bg2);
+  border-right: 1px solid var(--border); padding: 0;
+  display: flex; flex-direction: column; flex-shrink: 0;
+  position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+}
+.main { margin-left: 200px; flex: 1; padding: 28px 32px; max-width: 1100px; }
+
+/* SIDEBAR */
+.logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+.logo-name { font-size: 15px; font-weight: 600; letter-spacing: .02em; color: var(--text); }
+.logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px; cursor: pointer; font-size: 13px;
+  color: var(--text2); border-left: 2px solid transparent;
+  transition: all .15s; user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--bg3); }
+.nav-item.active { color: var(--text); border-left-color: var(--blue); background: rgba(77,159,255,0.06); }
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.sync-info { margin-top: auto; padding: 14px 20px; border-top: 1px solid var(--border); }
+.sync-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--text3); margin-right: 6px; }
+.sync-dot.ok { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.sync-dot.err { background: var(--red); }
+.sync-time { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.sync-btn { margin-top: 8px; width: 100%; padding: 7px; font-size: 12px; cursor: pointer; border: 1px solid var(--border2); border-radius: 6px; background: transparent; color: var(--text2); font-family: var(--font); transition: all .15s; }
+.sync-btn:hover { background: var(--bg3); color: var(--text); }
+
+/* PANELS */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* PAGE HEADER */
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 20px; font-weight: 600; color: var(--text); }
+.page-sub { font-size: 12px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+
+/* ALERTS */
+.alert { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 8px; border: 1px solid; }
+.alert-red { background: var(--red-bg); border-color: rgba(255,77,77,0.25); color: #ff8080; }
+.alert-yellow { background: var(--yellow-bg); border-color: rgba(245,166,35,0.25); color: #f5c060; }
+.alert-green { background: var(--green-bg); border-color: rgba(0,201,122,0.25); color: #00c97a; }
+.alert-icon { font-size: 14px; flex-shrink: 0; }
+
+/* GRIDS */
+.g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+.g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .g4 { grid-template-columns: repeat(2,1fr); } .g3 { grid-template-columns: repeat(2,1fr); } }
+
+/* KPI CARDS */
+.kpi {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden;
+}
+.kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, rgba(77,159,255,0.3), transparent); }
+.kpi-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.kpi-val { font-size: 22px; font-weight: 600; color: var(--text); line-height: 1.1; }
+.kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+.kpi-badge { position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; font-family: var(--mono); }
+.badge-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,201,122,0.2); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(245,166,35,0.2); }
+.badge-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,77,77,0.2); }
+.trend { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin-top: 5px; font-family: var(--mono); }
+.trend-up { background: var(--green-bg); color: var(--green); }
+.trend-dn { background: var(--red-bg); color: var(--red); }
+.kpi-prev { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-right: 4px; margin-top: 4px; font-family: var(--mono); }
+.pill-up { background: var(--green-bg); color: var(--green); }
+.pill-dn { background: var(--red-bg); color: var(--red); }
+
+/* PROYECCIÓN */
+.proj-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 24px; }
+.pj { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+.pj-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.pj-main { font-size: 20px; font-weight: 600; margin: 4px 0; font-family: var(--mono); }
+.pj-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* SECTION DIVIDER */
+.div { height: 1px; background: var(--border); margin: 24px 0; }
+.sec { font-size: 11px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px; }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.chart-wrap { position: relative; width: 100%; }
+
+/* KPI CRITICI */
+.kpi-bar-wrap { height: 5px; background: var(--bg3); border-radius: 3px; margin: 8px 0; overflow: hidden; }
+.kpi-bar { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.kpi-crit-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; color: var(--text); }
+.kpi-crit-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.kpi-crit-msg { font-size: 11px; font-weight: 500; margin-top: 6px; }
+.subcats { display: flex; gap: 8px; margin-top: 12px; }
+.subcat { flex: 1; background: var(--bg3); border-radius: 8px; padding: 8px 10px; text-align: center; }
+.subcat-lbl { font-size: 10px; color: var(--text3); margin-bottom: 4px; }
+.subcat-val { font-size: 13px; font-weight: 500; color: var(--text); font-family: var(--mono); }
+.subcat-pct { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* TABLE */
+.wt { width: 100%; font-size: 12px; border-collapse: collapse; }
+.wt th { text-align: left; padding: 8px 10px; font-weight: 500; color: var(--text3); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.wt td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text2); }
+.wt tr:last-child td { border: none; }
+.wt tr:hover td { background: var(--bg3); }
+.wt td:first-child { font-weight: 500; color: var(--text); }
+
+/* LEGEND */
+.leg { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 11px; color: var(--text3); align-items: center; }
+.leg-item { display: flex; align-items: center; gap: 5px; }
+.leg-line { width: 20px; height: 2px; border-radius: 2px; display: inline-block; }
+
+/* INPUT FORM */
+.form-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.form-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.form-note { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+.ir { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.ir label { font-size: 12px; color: var(--text3); min-width: 150px; }
+.ir input {
+  flex: 1; padding: 8px 12px; font-size: 13px;
+  border: 1px solid var(--border2); border-radius: 6px;
+  background: var(--bg3); color: var(--text); font-family: var(--mono);
+  transition: border-color .15s;
+}
+.ir input:focus { outline: none; border-color: var(--blue); }
+.btn { padding: 9px 20px; font-size: 13px; cursor: pointer; border: none; border-radius: 6px; background: var(--blue); color: #fff; width: 100%; margin-top: 4px; font-family: var(--font); font-weight: 500; transition: background .15s; }
+.btn:hover { background: #3a8ff0; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-name">BKS Control</div>
+    <div class="logo-sub">2026</div>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="go('dashboard')"><span class="nav-icon">▦</span> Dashboard</div>
+    <div class="nav-item" onclick="go('input')"><span class="nav-icon">⊕</span> Ingreso</div>
+    <div class="nav-item" onclick="go('semanas')"><span class="nav-icon">◫</span> Semanas</div>
+    <div class="nav-item" onclick="go('anual')"><span class="nav-icon">◈</span> Anual</div>
+  </nav>
+  <div class="sync-info">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span class="sync-time" id="sync-time">Conectando...</span>
+    </div>
+    <button class="sync-btn" onclick="cargarSheets()">↻ Actualizar</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- DASHBOARD -->
+  <div class="panel active" id="tab-dashboard">
+    <div class="page-header">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="page-sub" id="page-sub">Marzo 2026 — BKS</div>
+    </div>
+    <div id="alertas"></div>
+    <div class="sec" id="sec-hoy">Hoy</div>
+    <div class="g4" id="kpi-hoy"></div>
+    <div class="div"></div>
+    <div class="sec">Mes — Marzo 2026</div>
+    <div class="g4" id="kpi-mes"></div>
+    <div class="proj-cards" id="proyeccion"></div>
+    <div class="div"></div>
+    <div class="sec">KPI críticos — % sobre ventas reales</div>
+    <div class="g2" id="kpi-criticos"></div>
+    <div class="div"></div>
+    <div class="sec">Ventas diarias — Marzo 2026</div>
+    <div class="card"><div class="chart-wrap" style="height:180px"><canvas id="cDaily"></canvas></div></div>
+  </div>
+
+  <!-- INGRESO -->
+  <div class="panel" id="tab-input">
+    <div class="page-header"><div class="page-title">Ingreso de datos</div><div class="page-sub">Manual — solo si Google Sheets no está disponible</div></div>
+    <div class="form-card">
+      <div class="form-title">Ingreso diario</div>
+      <div class="form-note">Lo normal es ingresar directamente en Google Sheets. Esta pantalla es para casos de emergencia.</div>
+      <div class="ir"><label>Fecha</label><input type="date" id="in-fecha"/></div>
+      <div class="ir"><label>Ventas ($)</label><input type="number" id="in-ventas" placeholder="ej. 11402860"/></div>
+      <div class="ir"><label>N° cuentas</label><input type="number" id="in-cuentas" placeholder="ej. 239"/></div>
+      <button class="btn" onclick="guardarDia()">Guardar día</button>
+    </div>
+    <div class="form-card">
+      <div class="form-title">Ingreso semanal (cada domingo)</div>
+      <div class="ir"><label>Semana ISO</label><input type="number" id="in-sem" placeholder="ej. 13"/></div>
+      <div class="ir"><label>Compras Líquidos ($)</label><input type="number" id="in-liq"/></div>
+      <div class="ir"><label>Compras Sólidos ($)</label><input type="number" id="in-sol"/></div>
+      <div class="ir"><label>Compras Otros ($)</label><input type="number" id="in-otros"/></div>
+      <div class="ir"><label>Total RRHH ($)</label><input type="number" id="in-rrhh"/></div>
+      <button class="btn" onclick="guardarSemana()">Guardar semana</button>
+    </div>
+  </div>
+
+  <!-- SEMANAS -->
+  <div class="panel" id="tab-semanas">
+    <div class="page-header"><div class="page-title">Resumen semanal</div><div class="page-sub">Marzo 2026</div></div>
+    <div class="card" style="overflow-x:auto;margin-bottom:16px"><table class="wt" id="tabla-semanas"></table></div>
+    <div class="sec">Evolución KPI críticos por semana</div>
+    <div class="card">
+      <div class="leg" id="leg-kpi"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="cKpi"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ANUAL -->
+  <div class="panel" id="tab-anual">
+    <div class="page-header"><div class="page-title">Vista anual</div><div class="page-sub">Histórico 2024–2026 vs Presupuesto</div></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="leg">
+        <span class="leg-item"><span class="leg-line" style="background:#555a66"></span>2024</span>
+        <span class="leg-item"><span class="leg-line" style="background:var(--yellow)"></span>2025</span>
+        <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed var(--blue)"></span>Presupuesto 2026</span>
+        <span class="leg-item"><span class="leg-line" style="background:var(--green);height:3px"></span>Real 2026</span>
+      </div>
+      <div class="chart-wrap" style="height:240px"><canvas id="cAnual"></canvas></div>
+    </div>
+    <div class="sec">% cumplimiento presupuesto mensual 2026</div>
+    <div class="card">
+      <div class="chart-wrap" style="height:180px"><canvas id="cPresup"></canvas></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center;font-family:var(--mono)">Verde ≥100% &nbsp;|&nbsp; Amarillo 85–99% &nbsp;|&nbsp; Rojo &lt;85%</div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+const SHEET_ID = '1f7UYOrT82WAwzq0EgqNGbBMg90NrA1Ot-75BhvjAWFA';
+const GID_D = '0', GID_S = '411854168';
+const PMES = 250000000, DIAS_MES = 31, TC = 0.25, TR = 0.22;
+const PANUAL = [220e6,221e6,250e6,230e6,240e6,270e6,400e6,420e6,270e6,250e6,220e6,200e6];
+const MES_ANT_TOTAL = 193429183, MES_ANT2_TOTAL = 237826547;
+const wMap = {10:[1,3],11:[4,10],12:[11,17],13:[18,24],14:[25,31]};
+const wLabels = {10:'1–3 Mar',11:'4–10 Mar',12:'11–17 Mar',13:'18–24 Mar',14:'25–31 Mar'};
+const wTargets = {10:36e6,11:65e6,12:65e6,13:65e6,14:65e6};
+
+function getTargetDia(d){ const dow=new Date(2026,2,d).getDay(); return [8,4,4,5,7,12,12][dow]*1e6; }
+const targetDia = Array.from({length:31},(_,i)=>getTargetDia(i+1));
+
+const st = {
+  v: new Array(31).fill(0),
+  c: new Array(31).fill(0),
+  w: {10:{liq:0,sol:0,otros:0,rrhh:0},11:{liq:0,sol:0,otros:0,rrhh:0},12:{liq:0,sol:0,otros:0,rrhh:0},13:{liq:0,sol:0,otros:0,rrhh:0},14:{liq:0,sol:0,otros:0,rrhh:0}}
+};
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+const fmtM = n => '$'+Math.round(n/1e6)+'M';
+const fmt  = n => '$'+Math.round(n).toLocaleString('es-CL');
+const pct  = (a,b) => b&&b>0 ? +(a/b*100).toFixed(1) : 0;
+const clr  = (p,inv=false) => inv?(p<=100?'green':p<=125?'yellow':'red'):(p>=100?'green':p>=85?'yellow':'red');
+const num  = s => parseFloat((s||'0').toString().replace(/[$,\s]/g,''))||0;
+const bc   = c => 'badge-'+c;
+
+function flecha(a,b){
+  if(!b) return '';
+  const d=a-b, p=+(d/b*100).toFixed(1);
+  return `<span class="trend ${d>=0?'trend-up':'trend-dn'}">${d>=0?'↑':'↓'} ${d>=0?'+':''}${p}%</span>`;
+}
+function pill(lbl,v){ return `<span class="pill ${v>=0?'pill-up':'pill-dn'}">${v>=0?'↑':'↓'} ${v>=0?'+':''}${v}% ${lbl}</span>`; }
+function vSem(w){ const r=wMap[w]; return r?st.v.slice(r[0]-1,r[1]).reduce((a,b)=>a+b,0):0; }
+function getHoyIdx(){ let l=0; for(let i=0;i<st.v.length;i++) if(st.v[i]>0) l=i; return l; }
+
+// ── GOOGLE SHEETS via gviz ─────────────────────────────────────────────────
+function gvizUrl(gid){ return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=${gid}`; }
+
+async function fetchGviz(gid){
+  const r = await fetch(gvizUrl(gid));
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const txt = await r.text();
+  const match = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+  if(!match) throw new Error('Formato inválido');
+  return JSON.parse(match[1]);
+}
+
+async function cargarSheets(){
+  const dot = document.getElementById('sync-dot');
+  const time = document.getElementById('sync-time');
+  dot.className = 'sync-dot';
+  time.textContent = 'Sincronizando...';
+  try{
+    const d1 = await fetchGviz(GID_D);
+    const cols1 = d1.table.cols.map(c=>(c.label||c.id).toLowerCase().trim());
+    const rows1 = d1.table.rows||[];
+    st.v.fill(0); st.c.fill(0);
+    rows1.forEach(row=>{
+      if(!row.c||!row.c[0]||!row.c[0].v) return;
+      const raw = row.c[0].v;
+      let dt;
+      if(typeof raw==='string') dt=new Date(raw);
+      else if(typeof raw==='object'&&raw!==null) dt=new Date(raw);
+      else return;
+      if(isNaN(dt)) return;
+      const day = dt.getDate()-1;
+      if(day>=0&&day<31){
+        st.v[day] = num(row.c[1]?.v);
+        st.c[day] = num(row.c[2]?.v);
+      }
+    });
+
+    const d2 = await fetchGviz(GID_S);
+    const rows2 = d2.table.rows||[];
+    rows2.forEach(row=>{
+      if(!row.c||!row.c[0]||!row.c[0].v) return;
+      const w = parseInt(row.c[0].v);
+      if(!w||!st.w[w]) return;
+      st.w[w] = {
+        liq:  num(row.c[1]?.v),
+        sol:  num(row.c[2]?.v),
+        otros:num(row.c[3]?.v),
+        rrhh: num(row.c[4]?.v)
+      };
+    });
+
+    const now = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    dot.className = 'sync-dot ok';
+    time.textContent = now;
+    render();
+  }catch(e){
+    dot.className = 'sync-dot err';
+    time.textContent = 'Error de conexión';
+    console.error(e);
+    render();
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render(){
+  const hoyIdx = getHoyIdx();
+  const prevIdx = Math.max(hoyIdx-7,0);
+  const vh=st.v[hoyIdx]||0, vp=st.v[prevIdx]||0;
+  const ch=st.c[hoyIdx]||0, cp=st.c[prevIdx]||0;
+  const prom=ch?Math.round(vh/ch):0, promp=cp?Math.round(vp/cp):0;
+  const tgt=targetDia[hoyIdx], pHoy=pct(vh,tgt), cHoy=clr(pHoy);
+  const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dname=dias[new Date(2026,2,hoyIdx+1).getDay()];
+  document.getElementById('sec-hoy').textContent=`Hoy — ${dname} ${hoyIdx+1} Mar`;
+
+  // HOY
+  document.getElementById('kpi-hoy').innerHTML=`
+    <div class="kpi"><div class="kpi-lbl">Ventas hoy</div><div class="kpi-val">${fmtM(vh)}</div><div class="kpi-sub">obj ${fmtM(tgt)}</div>${flecha(vh,vp)}<div class="kpi-prev">sem. ant.: ${fmtM(vp)}</div><span class="kpi-badge ${bc(cHoy)}">${pHoy}%</span></div>
+    <div class="kpi"><div class="kpi-lbl">N° cuentas</div><div class="kpi-val">${ch}</div><div class="kpi-sub">cuentas abiertas</div>${flecha(ch,cp)}<div class="kpi-prev">sem. ant.: ${cp}</div></div>
+    <div class="kpi"><div class="kpi-lbl">Promedio/cuenta</div><div class="kpi-val">$${Math.round(prom/1000)}k</div><div class="kpi-sub">ticket promedio</div>${flecha(prom,promp)}<div class="kpi-prev">sem. ant.: $${Math.round(promp/1000)}k</div></div>
+    <div class="kpi"><div class="kpi-lbl">vs Objetivo</div><div class="kpi-val">${pHoy}%</div><div class="kpi-sub">del objetivo del día</div><span class="kpi-badge ${bc(cHoy)}">${cHoy==='green'?'OK':cHoy==='yellow'?'~OK':'BAJO'}</span></div>`;
+
+  // MES
+  const totV=st.v.reduce((a,b)=>a+b,0);
+  const allLiq=Object.values(st.w).reduce((a,w)=>a+(w.liq||0),0);
+  const allSol=Object.values(st.w).reduce((a,w)=>a+(w.sol||0),0);
+  const allOtros=Object.values(st.w).reduce((a,w)=>a+(w.otros||0),0);
+  const allRRHH=Object.values(st.w).reduce((a,w)=>a+(w.rrhh||0),0);
+  const totC=allLiq+allSol+allOtros;
+  const pV=pct(totV,PMES),pC=pct(totC,totV),pR=pct(allRRHH,totV);
+  const marg=totV-totC-allRRHH;
+  const vs1=+(pct(totV,MES_ANT_TOTAL)-100).toFixed(1);
+  const vs2=+(pct(totV,MES_ANT2_TOTAL)-100).toFixed(1);
+
+  document.getElementById('kpi-mes').innerHTML=`
+    <div class="kpi"><div class="kpi-lbl">Ventas del mes</div><div class="kpi-val">${fmtM(totV)}</div><div class="kpi-sub">obj ${fmtM(PMES)}</div><div style="margin-top:6px">${pill("Feb'26",vs1)}${pill("Mar'25",vs2)}</div><span class="kpi-badge ${bc(clr(pV))}">${pV}%</span></div>
+    <div class="kpi"><div class="kpi-lbl">Costo compras</div><div class="kpi-val">${fmtM(totC)}</div><div class="kpi-sub">${pC.toFixed(1)}% sobre ventas</div><span class="kpi-badge ${bc(clr(pC,true))}">${pC>0?(pC<=25?'OK':'ALTO'):'—'}</span></div>
+    <div class="kpi"><div class="kpi-lbl">RRHH del mes</div><div class="kpi-val">${fmtM(allRRHH)}</div><div class="kpi-sub">${pR.toFixed(1)}% sobre ventas</div><span class="kpi-badge ${bc(clr(pR,true))}">${pR>0?(pR<=22?'OK':'ALTO'):'—'}</span></div>
+    <div class="kpi"><div class="kpi-lbl">Margen bruto</div><div class="kpi-val">${fmtM(marg)}</div><div class="kpi-sub">${pct(marg,totV).toFixed(1)}% del facturado</div></div>`;
+
+  // PROYECCIÓN
+  const diasPasados=st.v.filter(x=>x>0).length||1;
+  const diasRestantes=Math.max(DIAS_MES-diasPasados,0);
+  const promDiario=totV/diasPasados;
+  const proyeccion=Math.round(promDiario*DIAS_MES);
+  const pProy=pct(proyeccion,PMES);
+  const hexProy=clr(pProy)==='green'?'var(--green)':clr(pProy)==='yellow'?'var(--yellow)':'var(--red)';
+  const falta=PMES-totV;
+
+  let caja3='';
+  if(proyeccion>=PMES){
+    caja3=`<div class="pj"><div class="pj-lbl">Corrección necesaria</div><div class="pj-main" style="color:var(--green)">¡Vas bien!</div><div class="pj-sub">Ritmo suficiente para el objetivo</div></div>`;
+  } else if(diasRestantes===0){
+    caja3=`<div class="pj"><div class="pj-lbl">Resultado final</div><div class="pj-main" style="color:var(--red)">Mes cerrado</div><div class="pj-sub">Faltaron ${fmtM(falta)}</div></div>`;
+  } else {
+    const factor=(falta/diasRestantes)/promDiario;
+    const necesario=Math.round(targetDia[Math.min(hoyIdx+1,30)]*factor);
+    const pctExtra=+((factor-1)*100).toFixed(1);
+    caja3=`<div class="pj"><div class="pj-lbl">Mañana debes vender</div><div class="pj-main" style="color:var(--red)">${fmtM(necesario)}</div><div class="pj-sub" style="color:var(--red)">+${pctExtra}% sobre ritmo actual</div><div class="pj-sub">${diasRestantes} días restantes</div></div>`;
+  }
+
+  document.getElementById('proyeccion').innerHTML=`
+    <div class="pj"><div class="pj-lbl">Proyección fin de mes</div><div class="pj-main" style="color:${hexProy}">${fmtM(proyeccion)}</div><div class="pj-sub" style="color:${hexProy}">${pProy.toFixed(1)}% del presupuesto</div><div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--mono)">prom. ${fmtM(promDiario)}/día × ${DIAS_MES} días</div></div>
+    <div class="pj"><div class="pj-lbl">${falta>0?'Falta al presupuesto':'Sobre presupuesto'}</div><div class="pj-main" style="color:${falta>0?'var(--red)':'var(--green)'}">${fmtM(Math.abs(falta))}</div><div class="pj-sub">${diasRestantes>0?diasRestantes+' días restantes':'mes cerrado'}</div></div>
+    ${caja3}`;
+
+  // ALERTAS
+  let al='';
+  if(pR>22) al+=`<div class="alert alert-red"><span class="alert-icon">⚠</span><span><strong>RRHH</strong> — ${pR.toFixed(1)}% sobre ventas vs objetivo 22%. Desvío: ${fmt(allRRHH-totV*TR)}</span></div>`;
+  if(pC>25) al+=`<div class="alert alert-red"><span class="alert-icon">⚠</span><span><strong>Costo compras</strong> — ${pC.toFixed(1)}% sobre ventas vs objetivo 25%. Desvío: ${fmt(totC-totV*TC)}</span></div>`;
+  if(totV>0){
+    if(pV<85) al+=`<div class="alert alert-red"><span class="alert-icon">⚠</span><span><strong>Ventas mes</strong> — ${pV.toFixed(1)}% del presupuesto. Faltan ${fmt(PMES-totV)}.</span></div>`;
+    else if(pV<100) al+=`<div class="alert alert-yellow"><span class="alert-icon">◉</span><span><strong>Ventas mes</strong> — ${pV.toFixed(1)}% del presupuesto. Faltan ${fmt(PMES-totV)}.</span></div>`;
+    else al+=`<div class="alert alert-green"><span class="alert-icon">✓</span><span><strong>Ventas mes</strong> — ¡Objetivo cumplido!</span></div>`;
+  }
+  document.getElementById('alertas').innerHTML=al;
+
+  // KPI CRITICI
+  const costoMax=totV*TC, rrhhMax=totV*TR;
+  document.getElementById('kpi-criticos').innerHTML=`
+    <div class="card">
+      <div class="kpi-crit-title">Costo compras — objetivo 25%</div>
+      <div class="kpi-crit-row"><span>Real: ${fmt(totC)} (${pC.toFixed(1)}%)</span><span>Máx: ${fmt(costoMax)}</span></div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${Math.min(pC/40*100,100)}%;background:${pC<=25?'var(--green)':pC<=30?'var(--yellow)':'var(--red)'}"></div></div>
+      <div class="kpi-crit-msg" style="color:${totC<=costoMax?'var(--green)':'var(--red)'}">
+        ${totC<=costoMax?'Dentro del presupuesto — margen: '+fmt(costoMax-totC):'ATENCIÓN — desvío: '+fmt(totC-costoMax)}
+      </div>
+      <div class="subcats">
+        <div class="subcat"><div class="subcat-lbl">Líquidos</div><div class="subcat-val">${fmtM(allLiq)}</div><div class="subcat-pct">${pct(allLiq,totV).toFixed(1)}%</div></div>
+        <div class="subcat"><div class="subcat-lbl">Sólidos</div><div class="subcat-val">${fmtM(allSol)}</div><div class="subcat-pct">${pct(allSol,totV).toFixed(1)}%</div></div>
+        <div class="subcat"><div class="subcat-lbl">Otros</div><div class="subcat-val">${fmtM(allOtros)}</div><div class="subcat-pct">${pct(allOtros,totV).toFixed(1)}%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="kpi-crit-title">RRHH — objetivo 22%</div>
+      <div class="kpi-crit-row"><span>Real: ${fmt(allRRHH)} (${pR.toFixed(1)}%)</span><span>Máx: ${fmt(rrhhMax)}</span></div>
+      <div class="kpi-bar-wrap"><div class="kpi-bar" style="width:${Math.min(pR/40*100,100)}%;background:${pR<=22?'var(--green)':pR<=27?'var(--yellow)':'var(--red)'}"></div></div>
+      <div class="kpi-crit-msg" style="color:${allRRHH<=rrhhMax?'var(--green)':'var(--red)'}">
+        ${allRRHH<=rrhhMax?'Dentro del presupuesto — margen: '+fmt(rrhhMax-allRRHH):'ATENCIÓN — desvío: '+fmt(allRRHH-rrhhMax)}
+      </div>
+      <div class="subcats" style="margin-top:12px">
+        <div class="subcat" style="flex:1"><div class="subcat-lbl">Si RRHH fuera 22%</div><div class="subcat-val" style="color:${allRRHH>rrhhMax?'var(--green)':'var(--text2)'}">${fmtM(totV-totC-rrhhMax)}</div><div class="subcat-pct">${allRRHH>rrhhMax?'+'+fmtM(allRRHH-rrhhMax)+' recuperables':''}</div></div>
+      </div>
+    </div>`;
+
+  renderDiario();
+}
+
+let cD=null;
+function renderDiario(){
+  if(cD) cD.destroy();
+  const labs=Array.from({length:31},(_,i)=>{const d=new Date(2026,2,i+1);return ['D','L','M','X','J','V','S'][d.getDay()]+(i+1)});
+  const activos=st.v.map(v=>v>0?v:null);
+  cD=new Chart(document.getElementById('cDaily'),{type:'bar',
+    data:{labels:labs,datasets:[
+      {data:activos,backgroundColor:activos.map((s,i)=>s==null?'rgba(255,255,255,0.04)':s>=targetDia[i]?'rgba(0,201,122,0.7)':'rgba(255,77,77,0.65)'),borderRadius:3,order:2},
+      {data:targetDia,type:'line',borderColor:'rgba(77,159,255,0.6)',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw?fmtM(c.raw):'sin datos'},backgroundColor:'#1e2026',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      scales:{
+        x:{ticks:{color:'#555a66',font:{size:9},autoSkip:false,maxRotation:60},grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{ticks:{callback:v=>fmtM(v),color:'#555a66',font:{size:9}},grid:{color:'rgba(255,255,255,0.05)'}}
+      }
+    }
+  });
+}
+
+function renderSemanas(){
+  const ws=Object.keys(wMap).map(Number);
+  const wV=ws.map(w=>vSem(w));
+  let h=`<tr><th>Semana</th><th>Período</th><th>Ventas</th><th>Target</th><th>% vs target</th><th>Costo %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤25%</span></th><th>RRHH %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤22%</span></th><th>Margen</th><th>vs sem. ant.</th></tr>`;
+  ws.forEach((w,i)=>{
+    const v=wV[i],wd=st.w[w]||{};
+    const c=(wd.liq||0)+(wd.sol||0)+(wd.otros||0),r=wd.rrhh||0;
+    const pV2=pct(v,wTargets[w]),pC=pct(c,v),pR=pct(r,v);
+    const prev=i>0?wV[i-1]:null;
+    const dif=prev&&prev>0?+(((v-prev)/prev)*100).toFixed(1):null;
+    h+=`<tr>
+      <td>Sem ${w}</td>
+      <td style="color:var(--text3);font-size:11px">${wLabels[w]}</td>
+      <td style="font-family:var(--mono)">${v>0?fmtM(v):'—'}</td>
+      <td style="color:var(--text3);font-family:var(--mono)">${fmtM(wTargets[w])}</td>
+      <td>${v>0?`<span class="kpi-badge ${bc(clr(pV2))}" style="position:static">${pV2}%</span>`:'—'}</td>
+      <td style="color:${pC>0&&pC<=25?'var(--green)':pC>25?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pC>0?pC.toFixed(1)+'%'+(pC>25?' ▲':' ✓'):'—'}</td>
+      <td style="color:${pR>0&&pR<=22?'var(--green)':pR>22?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pR>0?pR.toFixed(1)+'%'+(pR>22?' ▲':' ✓'):'—'}</td>
+      <td style="font-family:var(--mono)">${v>0?fmtM(v-c-r):'—'}</td>
+      <td style="font-family:var(--mono)">${dif===null?'—':`<span style="color:${dif>=0?'var(--green)':'var(--red)'}">${dif>=0?'+':''}${dif}%</span>`}</td>
+    </tr>`;
+  });
+  document.getElementById('tabla-semanas').innerHTML=h;
+  const wPctC=ws.map((w,i)=>wV[i]>0?pct((st.w[w]?.liq||0)+(st.w[w]?.sol||0)+(st.w[w]?.otros||0),wV[i]):null);
+  const wPctR=ws.map((w,i)=>wV[i]>0?pct(st.w[w]?.rrhh||0,wV[i]):null);
+  document.getElementById('leg-kpi').innerHTML=`
+    <span class="leg-item"><span class="leg-line" style="background:var(--red)"></span>Costo %</span>
+    <span class="leg-item"><span class="leg-line" style="background:var(--blue)"></span>RRHH %</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(255,77,77,0.4)"></span>Obj 25%</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(77,159,255,0.4)"></span>Obj 22%</span>`;
+  if(document.getElementById('cKpi')._ch) document.getElementById('cKpi')._ch.destroy();
+  const ch=new Chart(document.getElementById('cKpi'),{type:'line',
+    data:{labels:ws.map(w=>'Sem '+w),datasets:[
+      {label:'Costo %',data:wPctC,borderColor:'#ff4d4d',backgroundColor:'rgba(255,77,77,0.05)',borderWidth:2,pointRadius:5,pointBackgroundColor:wPctC.map(p=>p===null?'transparent':p>25?'#ff4d4d':'#00c97a'),fill:true,tension:0.3,spanGaps:false},
+      {label:'RRHH %',data:wPctR,borderColor:'#4d9fff',backgroundColor:'rgba(77,159,255,0.04)',borderWidth:2,pointRadius:5,pointBackgroundColor:wPctR.map(p=>p===null?'transparent':p>22?'#ff4d4d':'#00c97a'),fill:true,tension:0.3,spanGaps:false},
+      {label:'Obj 25%',data:ws.map(()=>25),borderColor:'rgba(255,77,77,0.35)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+      {label:'Obj 22%',data:ws.map(()=>22),borderColor:'rgba(77,159,255,0.35)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2026',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,callbacks:{label:c=>c.raw!=null?c.dataset.label+': '+c.raw+'%':'sin datos'}}},
+      scales:{y:{min:0,max:45,ticks:{callback:v=>v+'%',color:'#555a66',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#555a66',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+  document.getElementById('cKpi')._ch=ch;
+}
+
+function renderAnual(){
+  const r24=[297906411,291225436,341208112,301677340,309884354,364767832,462765061,501241001,356737859,291250866,270486214,239385855];
+  const r25=[250054470,194157027,237826547,214927080,222119098,224763740,378198057,404119601,214083609,208564834,202753468,168168505];
+  const r26=[210609243,193429183,null,null,null,null,null,null,null,null,null,null];
+  const totMar=st.v.reduce((a,b)=>a+b,0); if(totMar>0) r26[2]=totMar;
+  const ms=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  if(document.getElementById('cAnual')._ch) document.getElementById('cAnual')._ch.destroy();
+  const ca=new Chart(document.getElementById('cAnual'),{type:'line',
+    data:{labels:ms,datasets:[
+      {label:'2024',data:r24,borderColor:'#444950',borderWidth:1.5,pointRadius:2,fill:false,tension:0.3},
+      {label:'2025',data:r25,borderColor:'#f5a623',borderWidth:1.5,pointRadius:2,fill:false,tension:0.3},
+      {label:'Presupuesto 2026',data:PANUAL,borderColor:'rgba(77,159,255,0.5)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,tension:0.3},
+      {label:'Real 2026',data:r26,borderColor:'#00c97a',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#00c97a',fill:false,tension:0.3,spanGaps:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2026',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,callbacks:{label:c=>c.dataset.label+': '+fmtM(c.raw)}}},
+      scales:{y:{ticks:{callback:v=>fmtM(v),color:'#555a66',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#555a66',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+  document.getElementById('cAnual')._ch=ca;
+  const pb=PANUAL.map((b,i)=>r26[i]!=null?+pct(r26[i],b).toFixed(1):null);
+  if(document.getElementById('cPresup')._ch) document.getElementById('cPresup')._ch.destroy();
+  const cb=new Chart(document.getElementById('cPresup'),{type:'bar',
+    data:{labels:ms,datasets:[{data:pb,backgroundColor:pb.map(p=>p==null?'rgba(255,255,255,0.04)':p>=100?'rgba(0,201,122,0.7)':p>=85?'rgba(245,166,35,0.7)':'rgba(255,77,77,0.65)'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e2026',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,callbacks:{label:c=>c.raw!=null?c.raw+'%':'n/d'}}},
+      scales:{y:{ticks:{callback:v=>v+'%',color:'#555a66',font:{size:10}},min:0,max:130,grid:{color:'rgba(255,255,255,0.04)'}},x:{ticks:{color:'#555a66',font:{size:11}},grid:{color:'rgba(255,255,255,0.04)'}}}
+    }
+  });
+  document.getElementById('cPresup')._ch=cb;
+}
+
+function guardarDia(){
+  const d=parseInt(document.getElementById('in-fecha').value.split('-')[2]);
+  const v=parseFloat(document.getElementById('in-ventas').value);
+  const c=parseFloat(document.getElementById('in-cuentas').value);
+  if(!d||!v){alert('Ingresa fecha y ventas');return}
+  st.v[d-1]=v; if(c) st.c[d-1]=c;
+  render(); alert('¡Guardado!');
+}
+function guardarSemana(){
+  const w=parseInt(document.getElementById('in-sem').value);
+  const l=parseFloat(document.getElementById('in-liq').value)||0;
+  const s=parseFloat(document.getElementById('in-sol').value)||0;
+  const o=parseFloat(document.getElementById('in-otros').value)||0;
+  const r=parseFloat(document.getElementById('in-rrhh').value)||0;
+  if(!w){alert('Ingresa el número de semana');return}
+  st.w[w]={liq:l,sol:s,otros:o,rrhh:r}; render(); alert('¡Guardado!');
+}
+
+function go(id){
+  document.querySelectorAll('.nav-item').forEach((t,i)=>t.classList.toggle('active',['dashboard','input','semanas','anual'][i]===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='anual') renderAnual();
+  if(id==='semanas') renderSemanas();
+}
+
+document.getElementById('in-fecha').valueAsDate=new Date(2026,2,19);
+cargarSheets();
+</script>
+</body>
+</html>
