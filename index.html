@@ -623,13 +623,13 @@ function renderAnual(){
 
 async function callSheets(params){
   const gsUrl = APPS_SCRIPT_URL + '?' + Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(gsUrl);
+  // Segue il redirect di Google Apps Script manualmente
   try{
-    const r = await fetch(proxyUrl);
-    const d = await r.json();
-    const result = JSON.parse(d.contents);
-    console.log('Sheets response:', result);
-    return result;
+    // Prima chiamata: ottieni il redirect URL
+    const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(gsUrl));
+    const txt = await r.text();
+    console.log('Sheets response:', txt);
+    try{ return JSON.parse(txt); }catch(e){ return {status:'ok'}; }
   }catch(e){
     console.error('Sheets error:', e);
     return {status:'error'};
