@@ -162,8 +162,22 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 .pj-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
 
 /* SECTION DIVIDER */
-.div { height: 1px; background: var(--border); margin: 24px 0; }
-.sec { font-size: 10.5px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: .09em; margin-bottom: 10px; }
+.div { height: 1px; background: var(--border2); margin: 28px 0; }
+.sec {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin: 0 0 10px;
+  display: flex; align-items: center; gap: 8px;
+  --sec-color: var(--blue);
+}
+.sec::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 14px;
+  border-radius: 2px;
+  background: var(--sec-color);
+  flex-shrink: 0;
+}
 
 /* CARDS */
 .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
@@ -248,17 +262,17 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
       <div class="page-sub" id="page-sub">Marzo 2026 — BKS</div>
     </div>
     <div id="alertas"></div>
-    <div class="sec" id="sec-hoy">Hoy</div>
+    <div class="sec" id="sec-hoy" style="--sec-color:var(--blue)">Hoy</div>
     <div class="g4" id="kpi-hoy"></div>
     <div class="div"></div>
-    <div class="sec">Mes — Marzo 2026</div>
+    <div class="sec" style="--sec-color:var(--green)">Mes — Marzo 2026</div>
     <div class="g4" id="kpi-mes"></div>
     <div class="proj-cards" id="proyeccion"></div>
     <div class="div"></div>
-    <div class="sec">KPI críticos — % sobre ventas reales</div>
+    <div class="sec" style="--sec-color:var(--red)">KPI críticos — % sobre ventas reales</div>
     <div class="g2" id="kpi-criticos"></div>
     <div class="div"></div>
-    <div class="sec">Ventas diarias — Marzo 2026</div>
+    <div class="sec" style="--sec-color:var(--text3)">Ventas diarias — Marzo 2026</div>
     <div class="card"><div class="chart-wrap" style="height:180px"><canvas id="cDaily"></canvas></div></div>
   </div>
 
