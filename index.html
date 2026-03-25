@@ -335,6 +335,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const SHEET_ID = '1f7UYOrT82WAwzq0EgqNGbBMg90NrA1Ot-75BhvjAWFA';
 const GID_D = '0', GID_S = '411854168', GID_H = '1233677400';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLsbhPUTqdALRvl6yjRZId2EbVWJBvqXkKUE3jYTk4VLoGbwixun2_jhrnPJ9ahNzU/exec';
 const PMES = 250000000, DIAS_MES = 31, TC = 0.25, TR = 0.22;
 let PANUAL = [220e6,221e6,250e6,230e6,240e6,270e6,400e6,420e6,270e6,250e6,220e6,200e6];
 const MES_ANT_TOTAL = 193429183, MES_ANT2_TOTAL = 237826547;
@@ -701,22 +702,66 @@ function renderAnual(){
   document.getElementById('cPresup')._ch=cb;
 }
 
-function guardarDia(){
-  const d=parseInt(document.getElementById('in-fecha').value.split('-')[2]);
+async function guardarDia(){
+  const fechaRaw=document.getElementById('in-fecha').value;
   const v=parseFloat(document.getElementById('in-ventas').value);
   const c=parseFloat(document.getElementById('in-cuentas').value);
-  if(!d||!v){alert('Ingresa fecha y ventas');return}
+  if(!fechaRaw||!v){alert('Ingresa fecha y ventas');return}
+  const d=parseInt(fechaRaw.split('-')[2]);
   st.v[d-1]=v; if(c) st.c[d-1]=c;
-  render(); alert('¡Guardado!');
+  render();
+  const btn=document.querySelector('#tab-input .btn');
+  btn.textContent='Guardando...'; btn.disabled=true;
+  const parts=fechaRaw.split('-');
+  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const fechaFmt=`${parseInt(parts[2])}-${months[parseInt(parts[1])-1]}-${parts[0]}`;
+  const res=await callSheets({type:'diario',fecha:fechaFmt,ventas:v,cuentas:c||0});
+  btn.textContent=res.status==='ok'?'¡Guardado en Sheets!':'Error — revisa conexión';
+  setTimeout(()=>{btn.textContent='Guardar día';btn.disabled=false;autoSuggestIngreso();},2500);
 }
-function guardarSemana(){
+async function callSheets(params){
+  const gsUrl = APPS_SCRIPT_URL + '?' + Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+  try{
+    const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(gsUrl));
+    const txt = await r.text();
+    try{ return JSON.parse(txt); }catch(e){ return {status:'ok'}; }
+  }catch(e){
+    console.error('Sheets error:', e);
+    return {status:'error'};
+  }
+}
+
+async function guardarSemana(){
   const w=parseInt(document.getElementById('in-sem').value);
   const l=parseFloat(document.getElementById('in-liq').value)||0;
   const s=parseFloat(document.getElementById('in-sol').value)||0;
   const o=parseFloat(document.getElementById('in-otros').value)||0;
   const r=parseFloat(document.getElementById('in-rrhh').value)||0;
   if(!w){alert('Ingresa el número de semana');return}
-  st.w[w]={liq:l,sol:s,otros:o,rrhh:r}; render(); alert('¡Guardado!');
+  st.w[w]={liq:l,sol:s,otros:o,rrhh:r}; render();
+  const btns = document.querySelectorAll('#tab-input .btn');
+  const btn = btns[btns.length-1];
+  btn.textContent = 'Guardando...'; btn.disabled = true;
+  const res = await callSheets({type:'semanal', semana:`2026-W${String(w).padStart(2,'0')}`, liq:l, sol:s, otros:o, rrhh:r});
+  btn.textContent = res.status==='ok' ? '¡Guardado en Sheets!' : 'Error — revisa conexión';
+  setTimeout(()=>{btn.textContent='Guardar semana';btn.disabled=false;autoSuggestIngreso();},2500);
+}
+
+function autoSuggestIngreso(){
+  // Prossimo giorno mancante
+  let lastDay=0;
+  for(let i=0;i<st.v.length;i++) if(st.v[i]>0) lastDay=i;
+  const nextDate=new Date(2026,2,lastDay+2);
+  if(nextDate.getMonth()===2) document.getElementById('in-fecha').valueAsDate=nextDate;
+  // Prossima settimana mancante
+  const wNums=Object.keys(wMap).map(Number);
+  let lastW=null;
+  for(const w of wNums){
+    const wd=st.w[w];
+    if(wd&&((wd.liq||0)+(wd.sol||0)+(wd.otros||0)+(wd.rrhh||0))>0) lastW=w;
+  }
+  const nextW=lastW?Math.min(lastW+1,wNums[wNums.length-1]):wNums[0];
+  document.getElementById('in-sem').value=nextW;
 }
 
 function go(id){
@@ -725,9 +770,10 @@ function go(id){
   document.getElementById('tab-'+id).classList.add('active');
   if(id==='anual') renderAnual();
   if(id==='semanas') renderSemanas();
+  if(id==='input') autoSuggestIngreso();
 }
 
-document.getElementById('in-fecha').valueAsDate=new Date(2026,2,19);
+autoSuggestIngreso();
 cargarSheets();
 </script>
 </body>
