@@ -91,96 +91,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 .g4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
 .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-/* ── TABLET ────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .g4 { grid-template-columns: repeat(2,1fr); }
-  .g3 { grid-template-columns: repeat(2,1fr); }
-}
-
-/* ── MOBILE ────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  /* Sidebar → bottom nav */
-  .sidebar {
-    width: 100%; height: 56px; min-height: unset;
-    top: auto; bottom: 0; left: 0; right: 0;
-    flex-direction: row; border-right: none;
-    border-top: 1px solid var(--border2);
-    box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
-    z-index: 200;
-  }
-  .logo { display: none; }
-  nav {
-    display: flex; flex-direction: row;
-    width: 100%; justify-content: space-around;
-    padding: 0; margin: 0;
-  }
-  .nav-item {
-    flex-direction: column; gap: 2px;
-    padding: 8px 4px; font-size: 10px;
-    margin: 0; border-radius: 0;
-    flex: 1; text-align: center;
-    justify-content: center;
-    box-shadow: none !important;
-  }
-  .nav-item.active {
-    box-shadow: inset 0 2px 0 var(--blue) !important;
-    background: var(--blue-bg);
-  }
-  .nav-icon { font-size: 18px; width: auto; }
-  .sync-info { display: none; }
-
-  /* Main content */
-  .main {
-    margin-left: 0;
-    margin-bottom: 60px;
-    padding: 16px 14px;
-  }
-
-  /* Grids → single column on mobile */
-  .g4, .g3, .g2 {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .proj-cards { grid-template-columns: 1fr; gap: 8px; }
-
-  /* KPI cards compact */
-  .kpi { padding: 12px 14px; }
-  .kpi-val { font-size: 20px; }
-  .kpi-lbl { font-size: 10px; }
-  .kpi-sub { font-size: 10px; }
-  .kpi-badge { font-size: 10px; padding: 1px 6px; top:8px; right:8px; }
-  .trend { font-size: 10px; padding: 1px 5px; }
-  .kpi-prev { font-size: 10px; }
-  .pill { font-size: 9px; padding: 1px 5px; }
-
-  /* Page header */
-  .page-title { font-size: 18px; }
-  .page-sub { font-size: 11px; }
-
-  /* Section labels */
-  .sec { font-size: 10px; margin: 12px 0 8px; }
-  .div { margin: 12px 0; }
-
-  /* Proj cards full width on mobile */
-  .pj { padding: 12px; }
-  .pj-main { font-size: 17px; }
-
-  /* KPI critici full width */
-  #kpi-criticos { grid-template-columns: 1fr; }
-
-  /* Form inputs */
-  .ir { flex-direction: column; align-items: flex-start; gap: 4px; }
-  .ir label { min-width: unset; font-size: 12px; }
-  .ir input { width: 100%; }
-
-  /* Alerts */
-  .alert { font-size: 11px; padding: 8px 10px; }
-
-  /* Table scroll */
-  .card { padding: 12px; }
-}
-
+@media (max-width: 900px) { .g4 { grid-template-columns: repeat(2,1fr); } .g3 { grid-template-columns: repeat(2,1fr); } }
 
 /* KPI CARDS */
 .kpi {
@@ -317,7 +228,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
     <div class="page-header"><div class="page-title">Ingreso de datos</div><div class="page-sub">Manual — solo si Google Sheets no está disponible</div></div>
     <div class="form-card">
       <div class="form-title">Ingreso diario</div>
-      <div class="form-note">Los datos se guardan directamente en Google Sheets y quedan registrados permanentemente.</div>
+      <div class="form-note">Lo normal es ingresar directamente en Google Sheets. Esta pantalla es para casos de emergencia.</div>
       <div class="ir"><label>Fecha</label><input type="date" id="in-fecha"/></div>
       <div class="ir"><label>Ventas ($)</label><input type="number" id="in-ventas" placeholder="ej. 11402860"/></div>
       <div class="ir"><label>N° cuentas</label><input type="number" id="in-cuentas" placeholder="ej. 239"/></div>
@@ -371,7 +282,6 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 // ── CONFIG ─────────────────────────────────────────────────────────────────
 const SHEET_ID = '1f7UYOrT82WAwzq0EgqNGbBMg90NrA1Ot-75BhvjAWFA';
 const GID_D = '0', GID_S = '411854168', GID_H = '1233677400';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxLsbhPUTqdALRvl6yjRZId2EbVWJBvqXkKUE3jYTk4VLoGbwixun2_jhrnPJ9ahNzU/exec';
 const PMES = 250000000, DIAS_MES = 31, TC = 0.25, TR = 0.22;
 let PANUAL = [220e6,221e6,250e6,230e6,240e6,270e6,400e6,420e6,270e6,250e6,220e6,200e6];
 const MES_ANT_TOTAL = 193429183, MES_ANT2_TOTAL = 237826547;
@@ -506,22 +416,50 @@ async function cargarSheets(){
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
 function render(){
-  const hoyIdx = getHoyIdx();
-  const prevIdx = Math.max(hoyIdx-7,0);
-  const vh=st.v[hoyIdx]||0, vp=st.v[prevIdx]||0;
-  const ch=st.c[hoyIdx]||0, cp=st.c[prevIdx]||0;
-  const prom=ch?Math.round(vh/ch):0, promp=cp?Math.round(vp/cp):0;
-  const tgt=targetDia[hoyIdx], pHoy=pct(vh,tgt), cHoy=clr(pHoy);
+  const lastIdx = getHoyIdx(); // ultimo giorno con dati
   const dias=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const dname=dias[new Date(2026,2,hoyIdx+1).getDay()];
+
+  // Oggi = giorno reale; se non ancora inserito mostra obiettivo
+  const today = new Date();
+  const todayDayOfMonth = (today.getMonth()===2 && today.getFullYear()===2026) ? today.getDate() : (lastIdx+2);
+  const todayIdx = Math.min(todayDayOfMonth-1, 30);
+  const hasTodayData = st.v[todayIdx] > 0;
+  const hoyIdx = todayIdx;
+  const prevIdx = Math.max(hoyIdx-7, 0);
+  const vh = st.v[hoyIdx]||0, vp = st.v[prevIdx]||0;
+  const ch = st.c[hoyIdx]||0, cp = st.c[prevIdx]||0;
+  const prom = ch?Math.round(vh/ch):0, promp=cp?Math.round(vp/cp):0;
+  const tgt = targetDia[hoyIdx], pHoy=pct(vh,tgt), cHoy=clr(pHoy);
+  const dname = dias[new Date(2026,2,hoyIdx+1).getDay()];
   document.getElementById('sec-hoy').textContent=`Hoy — ${dname} ${hoyIdx+1} Mar`;
 
-  // HOY
-  document.getElementById('kpi-hoy').innerHTML=`
-    <div class="kpi"><div class="kpi-lbl">Ventas hoy</div><div class="kpi-val">${fmtM(vh)}</div><div class="kpi-sub">obj ${fmtM(tgt)}</div>${flecha(vh,vp)}<div class="kpi-prev">sem. ant.: ${fmtM(vp)}</div><span class="kpi-badge ${bc(cHoy)}">${pHoy}%</span></div>
-    <div class="kpi"><div class="kpi-lbl">N° cuentas</div><div class="kpi-val">${ch}</div><div class="kpi-sub">cuentas abiertas</div>${flecha(ch,cp)}<div class="kpi-prev">sem. ant.: ${cp}</div></div>
-    <div class="kpi"><div class="kpi-lbl">Promedio/cuenta</div><div class="kpi-val">$${Math.round(prom/1000)}k</div><div class="kpi-sub">ticket promedio</div>${flecha(prom,promp)}<div class="kpi-prev">sem. ant.: $${Math.round(promp/1000)}k</div></div>
-    <div class="kpi"><div class="kpi-lbl">vs Objetivo</div><div class="kpi-val">${pHoy}%</div><div class="kpi-sub">del objetivo del día</div><span class="kpi-badge ${bc(cHoy)}">${cHoy==='green'?'OK':cHoy==='yellow'?'~OK':'BAJO'}</span></div>`;
+  // HOY: se dati non inseriti mostra obiettivo + ieri; altrimenti tutto
+  let kpiHoyHtml = '';
+  if(!hasTodayData){
+    const ayerIdx = lastIdx;
+    const ayerPct = pct(st.v[ayerIdx], targetDia[ayerIdx]);
+    kpiHoyHtml = `
+      <div class="kpi" style="grid-column:1/3">
+        <div class="kpi-lbl">Objetivo de hoy</div>
+        <div class="kpi-val" style="color:var(--blue)">${fmtM(tgt)}</div>
+        <div class="kpi-sub" style="margin-top:6px">Datos pendientes — ingresa las ventas</div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text3)">Sem. ant. mismo día: ${fmtM(vp)}</div>
+      </div>
+      <div class="kpi" style="grid-column:3/5">
+        <div class="kpi-lbl">Ayer — ${dias[new Date(2026,2,ayerIdx+1).getDay()]} ${ayerIdx+1} Mar</div>
+        <div class="kpi-val">${fmtM(st.v[ayerIdx])}</div>
+        <div class="kpi-sub">obj ${fmtM(targetDia[ayerIdx])}</div>
+        <span class="kpi-badge ${bc(clr(ayerPct))}">${ayerPct}%</span>
+      </div>`;
+  } else {
+    kpiHoyHtml = `
+      <div class="kpi"><div class="kpi-lbl">Ventas hoy</div><div class="kpi-val">${fmtM(vh)}</div><div class="kpi-sub">obj ${fmtM(tgt)}</div>${flecha(vh,vp)}<div class="kpi-prev">sem. ant.: ${fmtM(vp)}</div><span class="kpi-badge ${bc(cHoy)}">${pHoy}%</span></div>
+      <div class="kpi"><div class="kpi-lbl">N° cuentas</div><div class="kpi-val">${ch}</div><div class="kpi-sub">cuentas abiertas</div>${flecha(ch,cp)}<div class="kpi-prev">sem. ant.: ${cp}</div></div>
+      <div class="kpi"><div class="kpi-lbl">Promedio/cuenta</div><div class="kpi-val">$${Math.round(prom/1000)}k</div><div class="kpi-sub">ticket promedio</div>${flecha(prom,promp)}<div class="kpi-prev">sem. ant.: $${Math.round(promp/1000)}k</div></div>
+      <div class="kpi"><div class="kpi-lbl">vs Objetivo</div><div class="kpi-val">${pHoy}%</div><div class="kpi-sub">del objetivo del día</div><span class="kpi-badge ${bc(cHoy)}">${cHoy==='green'?'OK':cHoy==='yellow'?'~OK':'BAJO'}</span></div>`;
+  }
+  document.getElementById('kpi-hoy').innerHTML = kpiHoyHtml;
+
 
   // MES
   const totV=st.v.reduce((a,b)=>a+b,0);
@@ -710,52 +648,22 @@ function renderAnual(){
   document.getElementById('cPresup')._ch=cb;
 }
 
-async function callSheets(params){
-  const gsUrl = APPS_SCRIPT_URL + '?' + Object.entries(params).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
-  // Segue il redirect di Google Apps Script manualmente
-  try{
-    // Prima chiamata: ottieni il redirect URL
-    const r = await fetch('https://corsproxy.io/?' + encodeURIComponent(gsUrl));
-    const txt = await r.text();
-    console.log('Sheets response:', txt);
-    try{ return JSON.parse(txt); }catch(e){ return {status:'ok'}; }
-  }catch(e){
-    console.error('Sheets error:', e);
-    return {status:'error'};
-  }
-}
-
-async function guardarDia(){
-  const fechaRaw = document.getElementById('in-fecha').value;
-  const v = parseFloat(document.getElementById('in-ventas').value);
-  const c = parseFloat(document.getElementById('in-cuentas').value);
-  if(!fechaRaw||!v){alert('Ingresa fecha y ventas');return}
-  const d = parseInt(fechaRaw.split('-')[2]);
+function guardarDia(){
+  const d=parseInt(document.getElementById('in-fecha').value.split('-')[2]);
+  const v=parseFloat(document.getElementById('in-ventas').value);
+  const c=parseFloat(document.getElementById('in-cuentas').value);
+  if(!d||!v){alert('Ingresa fecha y ventas');return}
   st.v[d-1]=v; if(c) st.c[d-1]=c;
-  render();
-  const btn = document.querySelector('#tab-input .btn');
-  btn.textContent = 'Guardando...'; btn.disabled = true;
-  const parts = fechaRaw.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const fechaFmt = `${parseInt(parts[2])}-${months[parseInt(parts[1])-1]}-${parts[0]}`;
-  const res = await callSheets({type:'diario', fecha:fechaFmt, ventas:v, cuentas:c||0});
-  btn.textContent = res.status==='ok' ? '¡Guardado en Sheets!' : 'Error — revisa conexión';
-  setTimeout(()=>{btn.textContent='Guardar día';btn.disabled=false;},2500);
+  render(); alert('¡Guardado!');
 }
-async function guardarSemana(){
+function guardarSemana(){
   const w=parseInt(document.getElementById('in-sem').value);
   const l=parseFloat(document.getElementById('in-liq').value)||0;
   const s=parseFloat(document.getElementById('in-sol').value)||0;
   const o=parseFloat(document.getElementById('in-otros').value)||0;
   const r=parseFloat(document.getElementById('in-rrhh').value)||0;
   if(!w){alert('Ingresa el número de semana');return}
-  st.w[w]={liq:l,sol:s,otros:o,rrhh:r}; render();
-  const btns = document.querySelectorAll('#tab-input .btn');
-  const btn = btns[btns.length-1];
-  btn.textContent = 'Guardando...'; btn.disabled = true;
-  const res = await callSheets({type:'semanal', semana:`2026-W${String(w).padStart(2,'0')}`, liq:l, sol:s, otros:o, rrhh:r});
-  btn.textContent = res.status==='ok' ? '¡Guardado en Sheets!' : 'Error — revisa conexión';
-  setTimeout(()=>{btn.textContent='Guardar semana';btn.disabled=false;},2500);
+  st.w[w]={liq:l,sol:s,otros:o,rrhh:r}; render(); alert('¡Guardado!');
 }
 
 function go(id){
@@ -764,29 +672,9 @@ function go(id){
   document.getElementById('tab-'+id).classList.add('active');
   if(id==='anual') renderAnual();
   if(id==='semanas') renderSemanas();
-  if(id==='input') autoSuggestIngreso();
 }
 
-// Auto-suggerisce il prossimo giorno e settimana mancanti
-function autoSuggestIngreso(){
-  // Prossimo giorno mancante
-  let lastDay = 0;
-  for(let i=0; i<st.v.length; i++) if(st.v[i]>0) lastDay=i;
-  const nextDay = Math.min(lastDay+1, 30);
-  const nextDate = new Date(2026, 2, nextDay+1);
-  document.getElementById('in-fecha').valueAsDate = nextDate;
-
-  // Prossima settimana mancante
-  const wNums = Object.keys(wMap).map(Number);
-  let lastWeekWithData = null;
-  for(const w of wNums){
-    const wd = st.w[w];
-    if(wd && ((wd.liq||0)+(wd.sol||0)+(wd.otros||0)+(wd.rrhh||0)) > 0) lastWeekWithData = w;
-  }
-  const nextWeek = lastWeekWithData ? Math.min(lastWeekWithData+1, wNums[wNums.length-1]) : wNums[0];
-  document.getElementById('in-sem').value = nextWeek;
-}
-autoSuggestIngreso();
+document.getElementById('in-fecha').valueAsDate=new Date(2026,2,19);
 cargarSheets();
 </script>
 </body>
