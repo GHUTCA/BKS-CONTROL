@@ -249,7 +249,16 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
     <div class="g2" id="kpi-criticos"></div>
     <div class="div"></div>
     <div class="sec" style="--sec-color:var(--text3)">Ventas diarias — Marzo 2026</div>
-    <div class="card"><div class="chart-wrap" style="height:180px"><canvas id="cDaily"></canvas></div></div>
+    <div class="card">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--text3);align-items:center">
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(10,138,82,0.75)"></span>Ventas ≥ obj</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(214,48,48,0.65)"></span>Ventas &lt; obj</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:20px;height:2px;background:rgba(26,111,212,0.5)"></span>Objetivo</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:20px;height:2px;background:rgba(196,125,10,0.8)"></span>Prom/cuenta →</span>
+        <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:20px;height:2px;background:rgba(120,80,200,0.8)"></span>N° cuentas →</span>
+      </div>
+      <div class="chart-wrap" style="height:180px"><canvas id="cDaily"></canvas></div>
+    </div>
   </div>
 
   <!-- INGRESO -->
@@ -619,16 +628,26 @@ function renderDiario(){
   if(cD) cD.destroy();
   const labs=Array.from({length:31},(_,i)=>{const d=new Date(2026,2,i+1);return ['D','L','M','X','J','V','S'][d.getDay()]+(i+1)});
   const activos=st.v.map(v=>v>0?v:null);
+  const promDiario=st.v.map((v,i)=>v>0&&st.c[i]>0?Math.round(v/st.c[i]):null);
+  const cuentasDiario=st.c.map(c=>c>0?c:null);
   cD=new Chart(document.getElementById('cDaily'),{type:'bar',
     data:{labels:labs,datasets:[
-      {data:activos,backgroundColor:activos.map((s,i)=>s==null?'rgba(255,255,255,0.04)':s>=targetDia[i]?'rgba(10,138,82,0.75)':'rgba(214,48,48,0.65)'),borderRadius:3,order:2},
-      {data:targetDia,type:'line',borderColor:'rgba(26,111,212,0.5)',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:1}
+      {data:activos,backgroundColor:activos.map((s,i)=>s==null?'rgba(255,255,255,0.04)':s>=targetDia[i]?'rgba(10,138,82,0.75)':'rgba(214,48,48,0.65)'),borderRadius:3,order:3,yAxisID:'y'},
+      {data:targetDia,type:'line',borderColor:'rgba(26,111,212,0.5)',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:2,yAxisID:'y'},
+      {label:'Prom/cuenta',data:promDiario,type:'line',borderColor:'rgba(196,125,10,0.8)',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'rgba(196,125,10,0.8)',fill:false,tension:0.3,order:1,yAxisID:'y2',spanGaps:false},
+      {label:'N° cuentas',data:cuentasDiario,type:'line',borderColor:'rgba(120,80,200,0.8)',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'rgba(120,80,200,0.8)',fill:false,tension:0.3,order:0,yAxisID:'y3',spanGaps:false}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw?fmtM(c.raw):'sin datos'},backgroundColor:'#ffffff',borderColor:'rgba(0,0,0,0.1)',borderWidth:1}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+        if(c.datasetIndex===2) return 'Prom/cta: $'+Math.round(c.raw/1000)+'k';
+        if(c.datasetIndex===3) return 'Cuentas: '+c.raw;
+        return c.raw?fmtM(c.raw):'sin datos';
+      }},backgroundColor:'#ffffff',borderColor:'rgba(0,0,0,0.1)',borderWidth:1}},
       scales:{
         x:{ticks:{color:'#9098aa',font:{size:9},autoSkip:false,maxRotation:60},grid:{color:'rgba(0,0,0,0.05)'}},
-        y:{ticks:{callback:v=>fmtM(v),color:'#9098aa',font:{size:9}},grid:{color:'rgba(0,0,0,0.06)'}}
+        y:{ticks:{callback:v=>fmtM(v),color:'#9098aa',font:{size:9}},grid:{color:'rgba(0,0,0,0.06)'}},
+        y2:{position:'right',ticks:{callback:v=>'$'+Math.round(v/1000)+'k',color:'rgba(196,125,10,0.7)',font:{size:9}},grid:{display:false}},
+        y3:{position:'right',ticks:{callback:v=>v,color:'rgba(120,80,200,0.7)',font:{size:9}},grid:{display:false}}
       }
     }
   });
