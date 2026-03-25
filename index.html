@@ -704,21 +704,23 @@ function renderSemanas(){
   const wPctR    = ws.map((w,i)=>wV[i]>0?pct(st.w[w]?.rrhh||0, wV[i]):null);
 
   document.getElementById('leg-kpi').innerHTML=`
-    <span class="leg-item"><span class="leg-line" style="background:#E24B4A"></span>Líquidos %</span>
-    <span class="leg-item"><span class="leg-line" style="background:#EF9F27"></span>Sólidos %</span>
-    <span class="leg-item"><span class="leg-line" style="background:#9C6FD6"></span>Otros %</span>
-    <span class="leg-item"><span class="leg-line" style="background:#378ADD"></span>RRHH %</span>
-    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(226,75,74,0.5)"></span>Obj 25%</span>
-    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(55,138,221,0.5)"></span>Obj 22%</span>`;
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed #E24B4A"></span>Líquidos %</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed #EF9F27"></span>Sólidos %</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed #9C6FD6"></span>Otros %</span>
+    <span class="leg-item"><span class="leg-line" style="background:#C42B2B;height:3px"></span>Total Costo %</span>
+    <span class="leg-item"><span class="leg-line" style="background:#378ADD;height:3px"></span>RRHH %</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(196,43,43,0.4)"></span>Obj 25%</span>
+    <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed rgba(55,138,221,0.4)"></span>Obj 22%</span>`;
 
   if(document.getElementById('cKpi')._ch) document.getElementById('cKpi')._ch.destroy();
   const ch=new Chart(document.getElementById('cKpi'),{type:'line',
     data:{labels:ws.map(w=>'Sem '+w),datasets:[
-      {label:'Líquidos %', data:wPctLiq,  borderColor:'#E24B4A',backgroundColor:'rgba(226,75,74,0.06)', borderWidth:2,pointRadius:4,fill:true, tension:0.3,spanGaps:false},
-      {label:'Sólidos %',  data:wPctSol,  borderColor:'#EF9F27',backgroundColor:'rgba(239,159,39,0.06)',borderWidth:2,pointRadius:4,fill:true, tension:0.3,spanGaps:false},
-      {label:'Otros %',    data:wPctOtros,borderColor:'#9C6FD6',backgroundColor:'rgba(156,111,214,0.05)',borderWidth:2,pointRadius:4,fill:true, tension:0.3,spanGaps:false},
-      {label:'RRHH %',     data:wPctR,    borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.05)', borderWidth:2,pointRadius:4,fill:true, tension:0.3,spanGaps:false},
-      {label:'Obj 25%',data:ws.map(()=>25),borderColor:'rgba(226,75,74,0.4)', borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+      {label:'Líquidos %', data:wPctLiq,  borderColor:'#E24B4A',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:3,fill:false,tension:0.3,spanGaps:false},
+      {label:'Sólidos %',  data:wPctSol,  borderColor:'#EF9F27',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:3,fill:false,tension:0.3,spanGaps:false},
+      {label:'Otros %',    data:wPctOtros,borderColor:'#9C6FD6',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,3],pointRadius:3,fill:false,tension:0.3,spanGaps:false},
+      {label:'Total Costo %',data:wPctC, borderColor:'#C42B2B',backgroundColor:'rgba(196,43,43,0.07)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:wPctC.map(p=>p===null?'transparent':p>25?'#C42B2B':'#0a7a48'),fill:true,tension:0.3,spanGaps:false},
+      {label:'RRHH %',     data:wPctR,    borderColor:'#378ADD',backgroundColor:'rgba(55,138,221,0.05)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:wPctR.map(p=>p===null?'transparent':p>22?'#C42B2B':'#0a7a48'),fill:true,tension:0.3,spanGaps:false},
+      {label:'Obj 25%',data:ws.map(()=>25),borderColor:'rgba(196,43,43,0.4)', borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
       {label:'Obj 22%',data:ws.map(()=>22),borderColor:'rgba(55,138,221,0.4)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
