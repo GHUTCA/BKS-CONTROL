@@ -93,6 +93,45 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
 .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 900px) { .g4 { grid-template-columns: repeat(2,1fr); } .g3 { grid-template-columns: repeat(2,1fr); } }
 
+@media (max-width: 600px) {
+  .sidebar {
+    width: 100%; height: 56px; min-height: unset;
+    top: auto; bottom: 0; left: 0; right: 0;
+    flex-direction: row; border-right: none;
+    border-top: 1px solid var(--border2);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.08);
+    z-index: 200;
+  }
+  .logo { display: none; }
+  nav { display: flex; flex-direction: row; width: 100%; justify-content: space-around; padding: 0; margin: 0; }
+  .nav-item {
+    flex-direction: column; gap: 2px; padding: 8px 4px; font-size: 10px;
+    margin: 0; border-radius: 0; flex: 1; text-align: center;
+    justify-content: center; box-shadow: none !important;
+  }
+  .nav-item.active { box-shadow: inset 0 2px 0 var(--blue) !important; background: var(--blue-bg); }
+  .nav-icon { font-size: 18px; width: auto; }
+  .sync-info { display: none; }
+  .main { margin-left: 0; margin-bottom: 64px; padding: 16px 14px; }
+  .g4, .g3 { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .g2 { grid-template-columns: 1fr; gap: 8px; }
+  .proj-cards { grid-template-columns: 1fr; gap: 8px; }
+  .kpi { padding: 12px 14px; }
+  .kpi-val { font-size: 20px; }
+  .kpi-lbl { font-size: 10px; }
+  .kpi-sub, .kpi-prev, .trend, .pill { font-size: 10px; }
+  .page-title { font-size: 18px; }
+  .div { margin: 12px 0; }
+  .ir { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .ir label { min-width: unset; }
+  .ir input { width: 100%; }
+  .alert { font-size: 11px; padding: 8px 10px; }
+  .hide-mobile { display: none; }
+  .wt { font-size: 11px; width: 100%; table-layout: fixed; }
+  .wt th, .wt td { padding: 5px 4px; word-break: break-word; }
+  #kpi-criticos { grid-template-columns: 1fr; }
+}
+
 /* KPI CARDS */
 .kpi {
   background: var(--bg2); border: 1px solid var(--border);
@@ -570,7 +609,7 @@ function renderDiario(){
 function renderSemanas(){
   const ws=Object.keys(wMap).map(Number);
   const wV=ws.map(w=>vSem(w));
-  let h=`<tr><th>Semana</th><th>Período</th><th>Ventas</th><th>Target</th><th>% vs target</th><th>Costo %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤25%</span></th><th>RRHH %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤22%</span></th><th>Margen</th><th>vs sem. ant.</th></tr>`;
+  let h=`<tr><th>Semana</th><th class="hide-mobile">Período</th><th>Ventas</th><th class="hide-mobile">Target</th><th>% vs target</th><th>Costo %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤25%</span></th><th>RRHH %<br><span style="font-weight:400;font-size:10px;text-transform:none">obj ≤22%</span></th><th class="hide-mobile">Margen</th><th class="hide-mobile">vs sem. ant.</th></tr>`;
   ws.forEach((w,i)=>{
     const v=wV[i],wd=st.w[w]||{};
     const c=(wd.liq||0)+(wd.sol||0)+(wd.otros||0),r=wd.rrhh||0;
@@ -579,14 +618,14 @@ function renderSemanas(){
     const dif=prev&&prev>0?+(((v-prev)/prev)*100).toFixed(1):null;
     h+=`<tr>
       <td>Sem ${w}</td>
-      <td style="color:var(--text3);font-size:11px">${wLabels[w]}</td>
+      <td class="hide-mobile" style="color:var(--text3);font-size:11px">${wLabels[w]}</td>
       <td style="font-family:var(--mono)">${v>0?fmtM(v):'—'}</td>
-      <td style="color:var(--text3);font-family:var(--mono)">${fmtM(wTargets[w])}</td>
+      <td class="hide-mobile" style="color:var(--text3);font-family:var(--mono)">${fmtM(wTargets[w])}</td>
       <td>${v>0?`<span class="kpi-badge ${bc(clr(pV2))}" style="position:static">${pV2}%</span>`:'—'}</td>
       <td style="color:${pC>0&&pC<=25?'var(--green)':pC>25?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pC>0?pC.toFixed(1)+'%'+(pC>25?' ▲':' ✓'):'—'}</td>
       <td style="color:${pR>0&&pR<=22?'var(--green)':pR>22?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pR>0?pR.toFixed(1)+'%'+(pR>22?' ▲':' ✓'):'—'}</td>
-      <td style="font-family:var(--mono)">${v>0?fmtM(v-c-r):'—'}</td>
-      <td style="font-family:var(--mono)">${dif===null?'—':`<span style="color:${dif>=0?'var(--green)':'var(--red)'}">${dif>=0?'+':''}${dif}%</span>`}</td>
+      <td class="hide-mobile" style="font-family:var(--mono)">${v>0?fmtM(v-c-r):'—'}</td>
+      <td class="hide-mobile" style="font-family:var(--mono)">${dif===null?'—':`<span style="color:${dif>=0?'var(--green)':'var(--red)'}">${dif>=0?'+':''${dif}%</span>`}</td>
     </tr>`;
   });
   document.getElementById('tabla-semanas').innerHTML=h;
