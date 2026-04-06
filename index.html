@@ -549,41 +549,32 @@ async function cargarSheets(){
 
     const d2 = await fetchGviz(GID_S);
     const rows2 = d2.table.rows||[];
-    rows2.forEach(row=>{
-      if(!row.c||!row.c[0]||!row.c[0].v) return;
-      const raw = row.c[0].v.toString().trim();
-      // Solo settimane 2026 — ignora 2025-W01 ecc.
-      if(raw.startsWith('2025')) return;
-      const match = raw.match(/W?(\d+)$/);
-      const w = match ? parseInt(match[1]) : parseInt(raw);
-      if(!w||!st.w[w]) return;
-      // gviz restituisce valori numerici in .v per celle con formato valuta
-      // Se .v è null (colonna vuota), usa .f (stringa formattata)
-      const getCol = (idx) => {
-        const cell = row.c ? row.c[idx] : undefined;
-        // gviz puede devolver null en posiciones de celdas vacías intermedias
-        if(cell === null || cell === undefined) return 0;
-        if(typeof cell.v === 'number') return cell.v;
-        // cell.f puede ser string con formato "$6,528,294"
-        if(cell.f && cell.f !== '0') return num(cell.f);
-        if(cell.v !== null && cell.v !== undefined) return num(cell.v);
-        return 0;
-      };
-      st.w[w] = {
-        liq:   getCol(3),
-        sol:   getCol(4),
-        otros: getCol(5),
-        rrhh:  getCol(6)
-      };
-    });
+    // Helper: legge il valore testo di una cella (usa .v o .f come fallback)
+    function cellStr(cell){ if(!cell) return ''; return (cell.v!==null&&cell.v!==undefined ? cell.v.toString() : '') || (cell.f||''); }
 
     rows2.forEach(row=>{
-      if(!row.c||!row.c[0]||!row.c[0].v) return;
-      const raw = row.c[0].v.toString().trim();
-      if(raw.startsWith('2025')) return;
-      const match = raw.match(/W?(\d+)$/);
-      const w = match ? parseInt(match[1]) : parseInt(raw);
-      if(!w) return;
+      if(!row.c||!row.c[0]) return;
+      const raw = cellStr(row.c[0]).trim();
+      if(!raw) return;
+      // Estrae numero settimana ISO (es. "2026-W06" -> 6, "2025-W01" -> 1)
+      const matchW = raw.match(/W(\d+)$/);
+      if(!matchW) return;
+      const w = parseInt(matchW[1]);
+      if(!w||!st.w[w]) return;
+      // Salta la settimana 2025-W01 (inizio anno, dati 2025)
+      if(raw.includes('2025') && w===1) return;
+
+      const getCol = (idx) => {
+        const cell = row.c[idx];
+        if(cell===null||cell===undefined) return 0;
+        if(typeof cell.v==='number') return cell.v;
+        if(cell.f) return num(cell.f);
+        if(cell.v!==null&&cell.v!==undefined) return num(cell.v.toString());
+        return 0;
+      };
+      st.w[w] = { liq:getCol(3), sol:getCol(4), otros:getCol(5), rrhh:getCol(6) };
+
+      // wDateMap
       const iniRaw = row.c[1]?.f || row.c[1]?.v;
       const finRaw = row.c[2]?.f || row.c[2]?.v;
       if(iniRaw) wDateMap[w] = {ini: iniRaw.toString().split('T')[0], fin: finRaw ? finRaw.toString().split('T')[0] : '—'};
@@ -611,7 +602,12 @@ async function cargarSheets(){
     });
 
     const now = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
-    // Debug: muestra qué datos se cargaron
+    // Debug dettagliato: mostra raw gviz per le prime 10 righe di Input_Semanal
+    console.log('[BKS] Input_Semanal — righe gviz raw (prime 10):');
+    rows2.slice(0,10).forEach((row,i)=>{
+      const c0=row.c?.[0];
+      console.log(`  [${i}] c[0].v=${JSON.stringify(c0?.v)} | c[0].f=${JSON.stringify(c0?.f)} | cellStr="${cellStr(c0)}" | liq_v=${row.c?.[3]?.v} | liq_f=${row.c?.[3]?.f}`);
+    });
     console.log('[BKS] Input_Diario — totales por mes:',
       Array.from({length:12},(_,m)=>({mes:m, total:Math.round(monthTotal(m)/1e6)+'M'})).filter(x=>x.total!=='0M'));
     console.log('[BKS] Input_Semanal — semanas con datos:',
