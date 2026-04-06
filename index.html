@@ -969,28 +969,36 @@ function renderSemanas() {
   weeks.forEach((wk,i) => {
     const v = wV[i], wd = st.w[wk.w]||{};
     const c = (wd.liq||0)+(wd.sol||0)+(wd.otros||0), r = wd.rrhh||0;
-    const pV2 = pct(v, wT[i]), pC = pct(c,v), pR = pct(r,v);
+    const diasEnMes = wk.lastDay - wk.firstDay + 1;
+    const isPartial = diasEnMes < 5; // semana parcial — no se calcula KPI %
+    const pV2 = pct(v, wT[i]);
+    const pC = (!isPartial && v>0) ? pct(c,v) : null;
+    const pR = (!isPartial && v>0) ? pct(r,v) : null;
     const prev = i>0 ? wV[i-1] : null;
     const dif = prev&&prev>0 ? +(((v-prev)/prev)*100).toFixed(1) : null;
+    const costoCell = pC!==null ? `<span style="color:${pC<=25?'var(--green)':'var(--red)'};font-family:var(--mono);font-size:12px">${pC.toFixed(1)}%${pC>25?' ▲':' ✓'}</span>` : `<span style="color:var(--text3);font-size:11px">sem. parcial</span>`;
+    const rrhhCell  = pR!==null ? `<span style="color:${pR<=22?'var(--green)':'var(--red)'};font-family:var(--mono);font-size:12px">${pR.toFixed(1)}%${pR>22?' ▲':' ✓'}</span>` : `<span style="color:var(--text3);font-size:11px">sem. parcial</span>`;
     h += `<tr>
       <td>Sem ${wk.w}</td>
       <td class="hide-mobile" style="color:var(--text3);font-size:11px">${weekLabel(wk)}</td>
       <td style="font-family:var(--mono)">${v>0?fmtM(v):'—'}</td>
       <td class="hide-mobile" style="color:var(--text3);font-family:var(--mono)">${fmtM(wT[i])}</td>
       <td>${v>0?`<span class="kpi-badge ${bc(clr(pV2))}" style="position:static">${pV2}%</span>`:'—'}</td>
-      <td style="color:${pC>0&&pC<=25?'var(--green)':pC>25?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pC>0?pC.toFixed(1)+'%'+(pC>25?' ▲':' ✓'):'—'}</td>
-      <td style="color:${pR>0&&pR<=22?'var(--green)':pR>22?'var(--red)':'var(--text3)'};font-family:var(--mono);font-size:12px">${pR>0?pR.toFixed(1)+'%'+(pR>22?' ▲':' ✓'):'—'}</td>
+      <td>${costoCell}</td>
+      <td>${rrhhCell}</td>
       <td class="hide-mobile" style="font-family:var(--mono)">${v>0?fmtM(v-c-r):'—'}</td>
       <td class="hide-mobile" style="font-family:var(--mono)">${dif===null?'—':`<span style="color:${dif>=0?'var(--green)':'var(--red)'}">${dif>=0?'+':''}${dif}%</span>`}</td>
     </tr>`;
   });
   document.getElementById('tabla-semanas').innerHTML = h;
 
-  const wPctLiq   = weeks.map((wk,i)=>wV[i]>0?pct(st.w[wk.w]?.liq||0,  wV[i]):null);
-  const wPctSol   = weeks.map((wk,i)=>wV[i]>0?pct(st.w[wk.w]?.sol||0,  wV[i]):null);
-  const wPctOtros = weeks.map((wk,i)=>wV[i]>0?pct(st.w[wk.w]?.otros||0,wV[i]):null);
-  const wPctC     = weeks.map((wk,i)=>wV[i]>0?pct((st.w[wk.w]?.liq||0)+(st.w[wk.w]?.sol||0)+(st.w[wk.w]?.otros||0),wV[i]):null);
-  const wPctR     = weeks.map((wk,i)=>wV[i]>0?pct(st.w[wk.w]?.rrhh||0, wV[i]):null);
+  // KPI % en el grafico: null para semanas parciales (<5 días en el mes)
+  const isFullWeek = weeks.map(wk => (wk.lastDay - wk.firstDay + 1) >= 5);
+  const wPctLiq   = weeks.map((wk,i)=> isFullWeek[i]&&wV[i]>0 ? pct(st.w[wk.w]?.liq||0,   wV[i]) : null);
+  const wPctSol   = weeks.map((wk,i)=> isFullWeek[i]&&wV[i]>0 ? pct(st.w[wk.w]?.sol||0,   wV[i]) : null);
+  const wPctOtros = weeks.map((wk,i)=> isFullWeek[i]&&wV[i]>0 ? pct(st.w[wk.w]?.otros||0, wV[i]) : null);
+  const wPctC     = weeks.map((wk,i)=> isFullWeek[i]&&wV[i]>0 ? pct((st.w[wk.w]?.liq||0)+(st.w[wk.w]?.sol||0)+(st.w[wk.w]?.otros||0), wV[i]) : null);
+  const wPctR     = weeks.map((wk,i)=> isFullWeek[i]&&wV[i]>0 ? pct(st.w[wk.w]?.rrhh||0,  wV[i]) : null);
 
   document.getElementById('leg-kpi').innerHTML=`
     <span class="leg-item"><span style="display:inline-block;width:20px;border-top:2px dashed #E24B4A"></span>Líquidos %</span>
