@@ -32,14 +32,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
 
-.shell { display: flex; min-height: 100vh; }
+.shell { display: flex; min-height: 100vh; overflow-x: hidden; }
 .sidebar {
   width: 200px; min-height: 100vh; background: var(--bg2);
   border-right: 1px solid var(--border2); padding: 0;
   display: flex; flex-direction: column; flex-shrink: 0;
   position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
 }
-.main { margin-left: 210px; flex: 1; padding: 32px 36px; max-width: 1080px; }
+.main { margin-left: 210px; flex: 1; padding: 32px 36px; max-width: 1080px; min-width: 0; overflow-x: hidden; }
 
 .logo {
   padding: 22px 20px 18px;
@@ -105,7 +105,7 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
   .nav-item.active { box-shadow: inset 0 2px 0 var(--blue) !important; background: var(--blue-bg); }
   .nav-icon { font-size: 18px; width: auto; }
   .sync-info { display: none; }
-  .main { margin-left: 0; margin-bottom: 64px; padding: 16px 14px; }
+  .main { margin-left: 0; margin-bottom: 64px; padding: 16px 14px; overflow-x: hidden; }
   .g4, .g3 { grid-template-columns: 1fr 1fr; gap: 8px; }
   .g2 { grid-template-columns: 1fr; gap: 8px; }
   .proj-cards { grid-template-columns: 1fr; gap: 8px; }
@@ -169,13 +169,14 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
   flex-shrink: 0;
 }
 
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 16px; overflow: hidden; min-width: 0; }
 .chart-wrap { position: relative; width: 100%; }
 
 /* SCROLLABLE CHART */
 .chart-scroll-outer {
   position: relative;
   width: 100%;
+  overflow: hidden;
 }
 .chart-scroll-container {
   overflow-x: auto;
@@ -183,12 +184,17 @@ html, body { background: var(--bg); color: var(--text); font-family: var(--font)
   -webkit-overflow-scrolling: touch;
   cursor: grab;
   user-select: none;
+  width: 100%;
 }
 .chart-scroll-container:active { cursor: grabbing; }
 .chart-scroll-container::-webkit-scrollbar { height: 5px; }
 .chart-scroll-container::-webkit-scrollbar-track { background: var(--bg3); border-radius: 3px; }
 .chart-scroll-container::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-.chart-scroll-inner { height: 200px; }
+.chart-scroll-inner {
+  height: 210px;
+  position: relative;
+  /* width set dynamically by JS */
+}
 
 /* Month nav pills */
 .month-nav {
@@ -802,17 +808,24 @@ function renderDiario() {
     return s >= targets[i] ? 'rgba(10,138,82,0.75)' : 'rgba(214,48,48,0.65)';
   });
 
-  // Width: ~28px per bar, min fill container
-  const barWidth = 28;
+  // Width: ~26px per bar, min fill container
+  const barWidth = 26;
   const container = document.getElementById('chart-scroll-container');
-  const minWidth = container ? container.offsetWidth : 400;
-  const chartWidth = Math.max(daysInM * barWidth, minWidth);
+  const containerWidth = container ? container.clientWidth : 600;
+  const chartWidth = Math.max(daysInM * barWidth, containerWidth);
 
   const inner = document.getElementById('chart-scroll-inner');
   inner.style.width = chartWidth + 'px';
 
-  if(cD) cD.destroy();
-  cD = new Chart(document.getElementById('cDaily'), {
+  // Size canvas explicitly before creating chart
+  const canvas = document.getElementById('cDaily');
+  canvas.style.width  = chartWidth + 'px';
+  canvas.style.height = '210px';
+  canvas.width  = chartWidth;
+  canvas.height = 210;
+
+  if(cD) { cD.destroy(); cD = null; }
+  cD = new Chart(canvas, {
     type: 'bar',
     data: {
       labels: labs,
@@ -854,6 +867,7 @@ function renderDiario() {
     options: {
       responsive: false,
       maintainAspectRatio: false,
+      animation: false,
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -874,14 +888,6 @@ function renderDiario() {
       }
     }
   });
-
-  // Set canvas pixel size to match
-  const canvas = document.getElementById('cDaily');
-  canvas.style.width  = chartWidth + 'px';
-  canvas.style.height = '200px';
-  canvas.width  = chartWidth * window.devicePixelRatio;
-  canvas.height = 200 * window.devicePixelRatio;
-  cD.resize();
 
   // Scroll to current month's last data day
   if(isCurrent) {
