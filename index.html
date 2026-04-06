@@ -560,11 +560,13 @@ async function cargarSheets(){
       // gviz restituisce valori numerici in .v per celle con formato valuta
       // Se .v è null (colonna vuota), usa .f (stringa formattata)
       const getCol = (idx) => {
-        const cell = row.c[idx];
-        if(!cell) return 0;
+        const cell = row.c ? row.c[idx] : undefined;
+        // gviz puede devolver null en posiciones de celdas vacías intermedias
+        if(cell === null || cell === undefined) return 0;
         if(typeof cell.v === 'number') return cell.v;
-        if(cell.f) return num(cell.f);
-        if(cell.v) return num(cell.v);
+        // cell.f puede ser string con formato "$6,528,294"
+        if(cell.f && cell.f !== '0') return num(cell.f);
+        if(cell.v !== null && cell.v !== undefined) return num(cell.v);
         return 0;
       };
       st.w[w] = {
@@ -594,16 +596,27 @@ async function cargarSheets(){
     rows3.forEach(row=>{
       if(!row.c||!row.c[0]||!row.c[0].v) return;
       const key = row.c[0].v.toString().trim();
-      const vals = Array.from({length:12},(_,i)=>row.c[i+1]?.v?num(row.c[i+1].v):null);
+      // Gestisce celle null nell'array (gviz omette celle vuote)
+      const vals = Array.from({length:12},(_,i)=>{
+        const cell = row.c[i+1];
+        if(!cell || cell.v === null || cell.v === undefined) return null;
+        return num(cell.v);
+      });
       st.hist[key] = vals;
-      // Normaliza alias de Presup 2026 (con o sin espacio)
-      if(key==='Presup 2026' || key==='Presup2026' || key==='presup2026'){
+      // Normaliza alias Presup2026
+      if(key==='Presup 2026'||key==='Presup2026'||key==='presup2026'){
         st.hist['Presup 2026'] = vals;
         st.hist['Presup2026'] = vals;
       }
     });
 
     const now = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    // Debug: muestra qué datos se cargaron
+    console.log('[BKS] Input_Diario — totales por mes:',
+      Array.from({length:12},(_,m)=>({mes:m, total:Math.round(monthTotal(m)/1e6)+'M'})).filter(x=>x.total!=='0M'));
+    console.log('[BKS] Input_Semanal — semanas con datos:',
+      Object.entries(st.w).filter(([w,d])=>(d.liq||d.sol||d.otros||d.rrhh)>0).map(([w,d])=>({w:+w,liq:d.liq,sol:d.sol,otros:d.otros,rrhh:d.rrhh})));
+    console.log('[BKS] Historico keys:', Object.keys(st.hist));
     dot.className = 'sync-dot ok';
     time.textContent = now;
     render();
