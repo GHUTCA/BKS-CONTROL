@@ -574,9 +574,9 @@ async function cargarSheets(){
       const matchW = raw.match(/W(\d+)$/);
       if(!matchW) return;
       const w = parseInt(matchW[1]);
-      if(!w||!st.w[w]) return;
-      // Salta la settimana 2025-W01 (inizio anno, dati 2025)
+      if(!w || w<1 || w>53) return;
       if(raw.includes('2025') && w===1) return;
+      if(!st.w[w]) st.w[w]={liq:0,sol:0,otros:0,rrhh:0};
 
       const getCol = (idx) => {
         const cell = row.c[idx];
@@ -604,7 +604,9 @@ async function cargarSheets(){
       // Gestisce celle null nell'array (gviz omette celle vuote)
       const vals = Array.from({length:12},(_,i)=>{
         const cell = row.c[i+1];
-        if(!cell || cell.v === null || cell.v === undefined) return null;
+        if(!cell || cell.v===null || cell.v===undefined) return null;
+        if(typeof cell.v==='number') return cell.v;
+        if(cell.f) return num(cell.f);
         return num(cell.v);
       });
       st.hist[key] = vals;
